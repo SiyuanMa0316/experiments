@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 
 print('Number of arguments:', len(sys.argv), 'arguments.')
 print('Argument List:', str(sys.argv))
@@ -90,3 +91,33 @@ data_reorder_cycle_sum/=1000
 print("data preparation cycles:"+str(data_prep_cycle_sum))
 print("data finalization cycles:"+str(data_final_cycle_sum))
 print("data reordering cycles:"+str(data_reorder_cycle_sum))
+
+dma_cycle_sum=0
+dma_start_cycle=0
+dma_end_cycle=0
+total_transferred_bytes=0
+fout = open(dir+"/dma_extracted.txt", "w")
+if os.path.isfile(dir+"stdout"):
+    f = open(dir+"stdout")
+    for line in f:
+        if "issueDmaRequest" in line:
+            words = line.split()
+            # print(words[2])
+            dma_start_cycle = int(re.sub(":","",words[0]))
+            # kernel_invokes+=1
+            fout.write(line)
+            total_transferred_bytes += int(words[-1])
+        if "Adding DMA node" in line:
+            fout.write(line)
+        if "dmaCompleteCallback" in line:
+            words = line.split()
+            # print(words[2])
+            dma_end_cycle = int(re.sub(":","",words[0]))
+            dma_cycle_sum+=(dma_end_cycle-dma_start_cycle)
+            fout.write(line)
+    # print("kernel invokes:" + str(kernel_invokes))
+    dma_cycle_sum/=host_ticks_per_cycle
+    print("total dma transferred bytes: "+str(total_transferred_bytes))
+    print("total dma cycles: "+str(dma_cycle_sum))
+
+fout.close()
